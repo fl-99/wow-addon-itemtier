@@ -1,0 +1,41 @@
+# Editors / IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Lua tooling / diagnostics
+.luarc.json
+.luarc.jsonc
+.sumneko/
+
+# Build / package outputs (CurseForge/Wago packagers, local zips)
+dist/
+build/
+release/
+*.zip
+
+# Temporary / backup files
+*.tmp
+*.bak
+*.orig
+*.swp
+
+# Local WoW install / symlink targets used for testing
+_retail_/
+_classic_/
+_classic_era_/
+_ptr_/
+_beta_/
+Interface/
+WTF/
+Cache/
+Logs/
+Errors/
