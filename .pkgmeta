@@ -5,6 +5,11 @@ package-as: ItemTier
 
 enable-nolib-creation: no
 
+externals:
+  Baganator:
+    url: https://github.com/Cidan/Baganator.git
+    tag: latest
+
 ignore:
   - .gitignore
   - .vscode
