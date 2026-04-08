@@ -1,0 +1,17 @@
+## Interface: 120001
+## Title: ItemTier
+## Notes: Displays the upgrade track / difficulty tier on bag item buttons. Integrates with Baganator as an icon-corner widget.
+## Author: ItemTier Contributors
+## Version: 1.0.0
+## SavedVariables: ItemTierDB
+## OptionalDeps: Baganator
+## IconTexture: Interface\Icons\inv_misc_note_01
+
+Util/Constants.lua
+Core/Cache.lua
+Core/ItemScanner.lua
+Core/Init.lua
+Core/Events.lua
+Integrations/Baganator.lua
+UI/Config.lua
+ItemTier.lua
