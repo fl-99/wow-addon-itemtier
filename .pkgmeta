@@ -1,0 +1,10 @@
+# CurseForge automatic packaging configuration
+# Docs: https://support.curseforge.com/support/solutions/articles/9000197281-automatic-packaging
+
+package-as: ItemTier
+
+enable-nolib-creation: no
+
+ignore:
+  - .gitignore
+  - .vscode
