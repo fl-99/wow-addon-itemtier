@@ -13,5 +13,6 @@ Core/ItemScanner.lua
 Core/Init.lua
 Core/Events.lua
 Integrations/Baganator.lua
+Integrations/CharacterFrame.lua
 UI/Config.lua
 ItemTier.lua
