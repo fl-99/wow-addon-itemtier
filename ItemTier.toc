@@ -6,6 +6,7 @@
 ## SavedVariables: ItemTierDB
 ## OptionalDeps: Baganator
 ## IconTexture: Interface\Icons\inv_misc_note_01
+## AddonCompartmentCategories: Inventory
 
 Util/Constants.lua
 Core/Cache.lua
