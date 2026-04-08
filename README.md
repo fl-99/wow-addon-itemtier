@@ -1,6 +1,6 @@
 # ItemTier
 
-A World of Warcraft addon (**Retail 12.0.1 / The War Within**) that displays a compact upgrade-track or difficulty-tier badge on bag item buttons via a **Baganator icon-corner widget**.
+A World of Warcraft addon (**Retail 12.0.1**) that displays a compact **upgrade-track** badge on bag item buttons via a **Baganator icon-corner widget**.
 
 ---
 
@@ -8,12 +8,13 @@ A World of Warcraft addon (**Retail 12.0.1 / The War Within**) that displays a c
 
 - Registers a **Baganator icon-corner widget** ("ItemTier: Track") selectable in  
   *Baganator → Icon Settings / Icon Corners*.
+- Adds a **vanilla Options → AddOns** panel for in-game configuration.
 - Detects the item upgrade track (Explorer → Myth) and PvP tracks, using multiple  
   detection strategies in priority order:
   1. `C_ItemUpgrade.GetItemUpgradeInfo()` — most accurate for live bag items
-  2. Bonus-ID lookup table — fast, works from the item link alone
-  3. Tooltip text scan — last resort, lazy and cached
-- Three display modes: **short** (`M`), **abbrev** (`Myth`), **full** (`Myth`)
+  2. Tooltip text scan (`Upgrade Level: ...`) — authoritative fallback
+  3. Bonus-ID lookup table — fast fallback when tooltip data is unavailable
+- Three display modes: **short** (`V`), **abbrev** (`Vet`), **full** (`Veteran`)
 - Color-coded labels per track.
 - Lightweight: item links are cached; cache is cleared on `BAG_UPDATE`.
 - Fails gracefully when Baganator is not installed.
@@ -33,7 +34,7 @@ A World of Warcraft addon (**Retail 12.0.1 / The War Within**) that displays a c
 ## Slash Commands
 
 ```
-/itemtier                     Show help
+/itemtier                     Open ItemTier options (or show help if unavailable)
 /itemtier enable|disable      Toggle the addon on or off
 /itemtier mode short|abbrev|full  Change display mode
 /itemtier colors on|off       Toggle color-coded labels
@@ -61,7 +62,7 @@ ItemTier/
 ├── Integrations/
 │   └── Baganator.lua          RegisterCornerWidget call + onInit / onUpdate
 └── UI/
-    └── Config.lua             /itemtier slash-command handler
+  └── Config.lua             /itemtier slash commands + AddOns settings panel
 ```
 
 ---
@@ -69,8 +70,9 @@ ItemTier/
 ## Baganator Integration
 
 ItemTier uses the public **`Baganator.API.RegisterCornerWidget`** API.  
-The widget is registered after Baganator's `ADDON_LOADED` event fires,  
-so load order does not matter.
+The widget is registered either on Baganator's `ADDON_LOADED` event or
+immediately if Baganator is already loaded (including `C_AddOns.IsAddOnLoaded`
+compat handling).
 
 The `onUpdate` callback receives Baganator's `details` table for each item button:
 
@@ -78,7 +80,7 @@ The `onUpdate` callback receives Baganator's `details` table for each item butto
 |---|---|
 | `details.itemLink` | cache key, bonus-ID parsing |
 | `details.itemLocation` | `C_ItemUpgrade.GetItemUpgradeInfo()` call |
-| `details.tooltipInfo` | tooltip-text fallback (if already fetched) |
+| `details.tooltipInfo` / `details.tooltipGetter` | tooltip fallback (`Upgrade Level: ...`) |
 
 ---
 
@@ -94,14 +96,14 @@ IDs for cached items.
 > **TODO:** Verify all bonus IDs against live servers for 12.0.1.66838.  
 > Update `ItemTier.Constants.BonusIDToTrack` when new seasons launch.
 
-### C_ItemUpgrade
+### C_ItemUpgrade and Tooltip Fallback
 
 `C_ItemUpgrade.GetItemUpgradeInfo()` returns different struct layouts  
 depending on the patch.  The scanner attempts multiple field names  
 (`bandTitle`, `trackDescription`, `trackName`) to remain resilient.  Items  
 that Blizzard does not mark as upgradeable (crafted legendaries, PvP  
-vendor items) will not be detected by this method; bonus-ID or tooltip  
-scanning acts as the fallback.
+vendor items) will not be detected by this method; tooltip scanning and
+bonus-ID lookup act as fallbacks.
 
 ### Difficulty / Source tier
 
@@ -109,6 +111,19 @@ Raid difficulty (Normal / Heroic / Mythic / LFR) and Mythic+ level detection
 are **not yet implemented**.  The `instanceDifficultyID` field in the item link  
 and M+ keystone bonus IDs are the intended data sources for a future  
 "ItemTier: Difficulty" widget.
+
+---
+
+## In-Game Options
+
+ItemTier registers a category under **Options → AddOns → ItemTier**.
+
+Available toggles/options:
+
+- Enable ItemTier
+- Color-coded Labels
+- Debug Output
+- Display Mode (short / abbrev / full)
 
 ---
 
