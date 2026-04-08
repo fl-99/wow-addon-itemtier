@@ -12,7 +12,7 @@ end
 
 local function PrintHelp()
     Print("Commands:")
-    Print("  /itemtier                  – show this help")
+    Print("  /itemtier                  – open options (or show help)")
     Print("  /itemtier enable           – enable the addon")
     Print("  /itemtier disable          – disable the addon")
     Print("  /itemtier mode short|abbrev|full  – set display mode")
@@ -46,7 +46,14 @@ local function HandleSlash(input)
 
     local cmd = args[1]
 
-    if not cmd or cmd == "" or cmd == "help" then
+    if not cmd or cmd == "" then
+        if ItemTier.Config.CategoryID then
+            Settings.OpenToCategory(ItemTier.Config.CategoryID)
+        else
+            PrintHelp()
+        end
+
+    elseif cmd == "help" then
         PrintHelp()
 
     elseif cmd == "enable" then
@@ -125,89 +132,115 @@ SlashCmdList["ITEMTIER"] = HandleSlash
 
 -- ---------------------------------------------------------------------------
 -- Vanilla Options → AddOns settings panel
--- Built with the modern Settings API (available in WoW 10.0+).
+-- Uses canvas-layout registration (RegisterCanvasLayoutCategory) so that the
+-- category is registered immediately and widgets are built manually inside the
+-- frame – the same reliable pattern used by well-known retail addons.
 -- Call this after SavedVariables have been loaded (i.e. from ItemTier.Init).
 -- ---------------------------------------------------------------------------
 function ItemTier.Config.BuildSettingsPanel()
-    if not Settings then return end
+    if not (Settings and Settings.RegisterCanvasLayoutCategory) then return end
 
-    local category = Settings.RegisterVerticalLayoutCategory("ItemTier")
+    local panel = CreateFrame("Frame")
+    panel.OnCommit  = function() end
+    panel.OnDefault = function() end
+    panel.OnRefresh = function() end
 
-    -- Helper: register a proxy setting backed by ItemTier.DB
-    local function ProxySetting(key, varType, name, default, getter, setter)
-        return Settings.RegisterProxySetting(
-            category, key, varType, name, default, getter, setter
-        )
+    local category, layout = Settings.RegisterCanvasLayoutCategory(panel, "ItemTier")
+    layout:AddAnchorPoint("TOPLEFT",     10, -10)
+    layout:AddAnchorPoint("BOTTOMRIGHT", -10, 10)
+    panel:Hide()
+
+    -- Register immediately so the category appears even if widget setup fails.
+    Settings.RegisterAddOnCategory(category)
+    ItemTier.Config.CategoryID = category:GetID()
+
+    -- ── layout helper ───────────────────────────────────────────────────────
+    local lastCtrl = nil
+    local function Place(frame, extraY)
+        if lastCtrl then
+            frame:SetPoint("TOPLEFT", lastCtrl, "BOTTOMLEFT", 0, extraY or -6)
+        else
+            frame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, extraY or -6)
+        end
+        lastCtrl = frame
     end
 
-    -- Enabled / disabled toggle
-    local enabledSetting = ProxySetting(
-        "ITEMTIER_ENABLED", Settings.VarType.Boolean,
-        "Enable ItemTier",
-        ItemTier.Constants.DefaultConfig.enabled,
-        function() return ItemTier.DB.enabled end,
-        function(val) ItemTier.DB.enabled = val end
-    )
-    Settings.CreateCheckBox(category, enabledSetting,
-        "Show upgrade track / tier labels on bag item icons.")
+    -- ── checkbox helper ─────────────────────────────────────────────────────
+    local function AddCheckbox(label, tip, getter, setter)
+        local cb = CreateFrame("CheckButton", nil, panel,
+                               "InterfaceOptionsCheckButtonTemplate")
+        cb.Text:SetText(label)
+        cb.tooltipText        = label
+        cb.tooltipRequirement = tip
+        cb:SetScript("OnShow",  function(self) self:SetChecked(getter()) end)
+        cb:SetScript("OnClick", function(self)
+            setter(self:GetChecked())
+            if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
+                Baganator.API.RequestItemButtonsRefresh()
+            end
+        end)
+        Place(cb)
+    end
 
-    -- Color-coded labels toggle
-    local colorsSetting = ProxySetting(
-        "ITEMTIER_USE_COLORS", Settings.VarType.Boolean,
-        "Color-coded Labels",
-        ItemTier.Constants.DefaultConfig.useColors,
-        function() return ItemTier.DB.useColors end,
-        function(val)
-            ItemTier.DB.useColors = val
-            ItemTier.Cache.Clear()
-        end
-    )
-    Settings.CreateCheckBox(category, colorsSetting,
-        "Tint each label with the color associated with its upgrade track.")
+    -- ── controls ────────────────────────────────────────────────────────────
+    AddCheckbox("Enable ItemTier",
+        "Show upgrade track labels on bag item icons.",
+        function() return ItemTier.DB and ItemTier.DB.enabled end,
+        function(v) if ItemTier.DB then ItemTier.DB.enabled = v end end)
+
+    AddCheckbox("Color-coded Labels",
+        "Tint each label with the color of its upgrade track.",
+        function() return ItemTier.DB and ItemTier.DB.useColors end,
+        function(v)
+            if ItemTier.DB then
+                ItemTier.DB.useColors = v
+                ItemTier.Cache.Clear()
+            end
+        end)
+
+    AddCheckbox("Debug Output",
+        "Print verbose debug messages to the chat frame.",
+        function() return ItemTier.DB and ItemTier.DB.debug end,
+        function(v) if ItemTier.DB then ItemTier.DB.debug = v end end)
+
+    -- Display mode label
+    local modeLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    modeLabel:SetText("Display Mode")
+    Place(modeLabel, -12)
 
     -- Display mode dropdown
-    local modeSetting = ProxySetting(
-        "ITEMTIER_DISPLAY_MODE", Settings.VarType.String,
-        "Display Mode",
-        ItemTier.Constants.DefaultConfig.displayMode,
-        function() return ItemTier.DB.displayMode end,
-        function(val)
-            ItemTier.DB.displayMode = val
-            ItemTier.Cache.Clear()
-        end
-    )
-    local function GetModeOptions()
-        local container = Settings.CreateControlTextContainer()
-        container:Add("short",  "Short  (E / A / V \226\128\166)")
-        container:Add("abbrev", "Abbreviated  (Expl / Adv / Vet \226\128\166)")
-        container:Add("full",   "Full  (Explorer / Adventurer \226\128\166)")
-        return container:GetData()
-    end
-    Settings.CreateDropdown(category, modeSetting, GetModeOptions,
-        "Choose how the upgrade track is displayed on bag icons.")
+    local modeDD = CreateFrame("Frame", "ItemTierConfigModeDropdown",
+                               panel, "UIDropDownMenuTemplate")
+    modeDD:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -15, -2)
+    UIDropDownMenu_SetWidth(modeDD, 220)
 
-    -- Label scale slider (0.5× – 2.0×)
-    local fontSizeSetting = ProxySetting(
-        "ITEMTIER_FONT_SIZE", Settings.VarType.Number,
-        "Label Scale",
-        ItemTier.Constants.DefaultConfig.fontSize,
-        function() return ItemTier.DB.fontSize end,
-        function(val) ItemTier.DB.fontSize = val end
-    )
-    local sliderOptions = Settings.CreateSliderOptions(0.5, 2.0, 0.1)
-    Settings.CreateSlider(category, fontSizeSetting, sliderOptions,
-        "Font size multiplier for upgrade track labels (1.0 = default).")
+    local modeChoices = {
+        { value = "short",  text = "Short  (E / V / C ...)" },
+        { value = "abbrev", text = "Abbreviated  (Expl / Vet / Chmp ...)" },
+        { value = "full",   text = "Full  (Explorer / Veteran / Champion ...)" },
+    }
 
-    -- Debug output toggle
-    local debugSetting = ProxySetting(
-        "ITEMTIER_DEBUG", Settings.VarType.Boolean,
-        "Debug Output",
-        ItemTier.Constants.DefaultConfig.debug,
-        function() return ItemTier.DB.debug end,
-        function(val) ItemTier.DB.debug = val end
-    )
-    Settings.CreateCheckBox(category, debugSetting,
-        "Print verbose debug messages to the chat frame.")
-
-    Settings.RegisterAddOnCategory(category)
+    panel:HookScript("OnShow", function()
+        UIDropDownMenu_Initialize(modeDD, function()
+            for _, m in ipairs(modeChoices) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text  = m.text
+                info.value = m.value
+                info.func  = function(self)
+                    if ItemTier.DB then
+                        ItemTier.DB.displayMode = self.value
+                        ItemTier.Cache.Clear()
+                    end
+                    UIDropDownMenu_SetSelectedValue(modeDD, self.value)
+                    if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
+                        Baganator.API.RequestItemButtonsRefresh()
+                    end
+                end
+                UIDropDownMenu_AddButton(info)
+            end
+            UIDropDownMenu_SetSelectedValue(modeDD,
+                (ItemTier.DB and ItemTier.DB.displayMode)
+                or ItemTier.Constants.DefaultConfig.displayMode)
+        end)
+    end)
 end

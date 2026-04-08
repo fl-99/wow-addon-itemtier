@@ -2,8 +2,8 @@
 --
 -- Detection methods, in priority order:
 --   1. C_ItemUpgrade.GetItemUpgradeInfo()   – most accurate for upgradeable gear
---   2. Bonus ID table lookup                – fast, works from item link alone
---   3. Tooltip text scan                    – last resort, lazy / cached
+--   2. Tooltip text scan                    – authoritative when available
+--   3. Bonus ID table lookup                – fallback when tooltip data unavailable
 
 ItemTier = ItemTier or {}
 ItemTier.Scanner = {}
@@ -81,7 +81,7 @@ local function DetectViaUpgradeAPI(itemLocation)
 end
 
 -- ---------------------------------------------------------------------------
--- Method 2: Bonus ID table lookup
+-- Method 3: Bonus ID table lookup
 -- Returns the track name string, or nil.
 -- ---------------------------------------------------------------------------
 local function DetectViaBonusIDs(itemLink)
@@ -95,7 +95,7 @@ local function DetectViaBonusIDs(itemLink)
 end
 
 -- ---------------------------------------------------------------------------
--- Method 3: Tooltip text scan (lazy – only called when tooltipGetter provided)
+-- Method 2: Tooltip text scan
 -- Returns the track name string, or nil.
 -- ---------------------------------------------------------------------------
 local function DetectViaTooltip(tooltipInfo)
