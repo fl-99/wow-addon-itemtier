@@ -55,11 +55,12 @@ end
 -- Register with Baganator once it has finished loading.
 -- ---------------------------------------------------------------------------
 local function RegisterWithBaganator()
-    if not (Baganator and Baganator.API and Baganator.API.RegisterCornerWidget) then
+    local baganator = rawget(_G, "Baganator")
+    if not (baganator and baganator.API and baganator.API.RegisterCornerWidget) then
         return
     end
 
-    Baganator.API.RegisterCornerWidget(
+    baganator.API.RegisterCornerWidget(
         "ItemTier: Track",   -- label shown in Baganator's icon-corner config
         "itemtier_track",    -- unique internal ID
         OnUpdate,
@@ -81,9 +82,8 @@ end)
 
 -- With OptionalDeps: Baganator, Baganator always loads before ItemTier when it
 -- is installed, so ADDON_LOADED for "Baganator" has already fired by the time
--- this file runs.  The global IsAddOnLoaded was moved to C_AddOns.IsAddOnLoaded
--- in 10.0, so we check both for forward- and backward-compatibility.
-local checkLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+-- this file runs.
+local checkLoaded = C_AddOns and C_AddOns.IsAddOnLoaded
 if checkLoaded and checkLoaded("Baganator") then
     RegisterWithBaganator()
     loader:UnregisterEvent("ADDON_LOADED")

@@ -14,11 +14,12 @@ local eventFrame = CreateFrame("Frame")
 local function OnBagUpdate()
     ItemTier.Cache.Clear()
     -- Ask Baganator to refresh its item buttons if it's loaded.
-    if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
-        Baganator.API.RequestItemButtonsRefresh({
-            Baganator.Constants
-            and Baganator.Constants.RefreshReason
-            and Baganator.Constants.RefreshReason.ItemWidgets
+    local baganator = rawget(_G, "Baganator")
+    if baganator and baganator.API and baganator.API.RequestItemButtonsRefresh then
+        baganator.API.RequestItemButtonsRefresh({
+            baganator.Constants
+            and baganator.Constants.RefreshReason
+            and baganator.Constants.RefreshReason.ItemWidgets
             or "ItemWidgets"
         })
     end

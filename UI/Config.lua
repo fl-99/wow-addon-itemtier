@@ -34,6 +34,13 @@ local function PrintStatus()
     Print("  Cache size : " .. tostring(ItemTier.Cache.Size()))
 end
 
+local function RequestBaganatorRefresh()
+    local baganator = rawget(_G, "Baganator")
+    if baganator and baganator.API and baganator.API.RequestItemButtonsRefresh then
+        baganator.API.RequestItemButtonsRefresh()
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- Slash command handler
 -- ---------------------------------------------------------------------------
@@ -119,9 +126,7 @@ local function HandleSlash(input)
     end
 
     -- Request a Baganator refresh so changes take effect immediately.
-    if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
-        Baganator.API.RequestItemButtonsRefresh()
-    end
+    RequestBaganatorRefresh()
 end
 
 -- ---------------------------------------------------------------------------
@@ -175,9 +180,7 @@ function ItemTier.Config.BuildSettingsPanel()
         cb:SetScript("OnShow",  function(self) self:SetChecked(getter()) end)
         cb:SetScript("OnClick", function(self)
             setter(self:GetChecked())
-            if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
-                Baganator.API.RequestItemButtonsRefresh()
-            end
+            RequestBaganatorRefresh()
         end)
         Place(cb)
     end
@@ -232,9 +235,7 @@ function ItemTier.Config.BuildSettingsPanel()
                         ItemTier.Cache.Clear()
                     end
                     UIDropDownMenu_SetSelectedValue(modeDD, self.value)
-                    if Baganator and Baganator.API and Baganator.API.RequestItemButtonsRefresh then
-                        Baganator.API.RequestItemButtonsRefresh()
-                    end
+                    RequestBaganatorRefresh()
                 end
                 UIDropDownMenu_AddButton(info)
             end
