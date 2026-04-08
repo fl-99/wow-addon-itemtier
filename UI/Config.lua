@@ -34,10 +34,14 @@ local function PrintStatus()
     Print("  Cache size : " .. tostring(ItemTier.Cache.Size()))
 end
 
-local function RequestBaganatorRefresh()
+local function RequestBagWidgetRefresh()
     local baganator = rawget(_G, "Baganator")
     if baganator and baganator.API and baganator.API.RequestItemButtonsRefresh then
         baganator.API.RequestItemButtonsRefresh()
+    end
+
+    if ItemTier.BlizzardBags and ItemTier.BlizzardBags.RefreshAll then
+        ItemTier.BlizzardBags.RefreshAll()
     end
 end
 
@@ -126,7 +130,7 @@ local function HandleSlash(input)
     end
 
     -- Request a Baganator refresh so changes take effect immediately.
-    RequestBaganatorRefresh()
+    RequestBagWidgetRefresh()
 end
 
 -- ---------------------------------------------------------------------------
@@ -180,7 +184,7 @@ function ItemTier.Config.BuildSettingsPanel()
         cb:SetScript("OnShow",  function(self) self:SetChecked(getter()) end)
         cb:SetScript("OnClick", function(self)
             setter(self:GetChecked())
-            RequestBaganatorRefresh()
+            RequestBagWidgetRefresh()
         end)
         Place(cb)
     end
@@ -235,7 +239,7 @@ function ItemTier.Config.BuildSettingsPanel()
                         ItemTier.Cache.Clear()
                     end
                     UIDropDownMenu_SetSelectedValue(modeDD, self.value)
-                    RequestBaganatorRefresh()
+                    RequestBagWidgetRefresh()
                 end
                 UIDropDownMenu_AddButton(info)
             end

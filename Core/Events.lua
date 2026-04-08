@@ -23,6 +23,10 @@ local function OnBagUpdate()
             or "ItemWidgets"
         })
     end
+
+    if ItemTier.BlizzardBags and ItemTier.BlizzardBags.RefreshAll then
+        ItemTier.BlizzardBags.RefreshAll()
+    end
 end
 
 -- PLAYER_ENTERING_WORLD fires on login, reload, and zone changes.
