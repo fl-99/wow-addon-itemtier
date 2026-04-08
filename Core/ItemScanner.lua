@@ -100,11 +100,29 @@ end
 -- ---------------------------------------------------------------------------
 local function DetectViaTooltip(tooltipInfo)
     if not tooltipInfo then return nil end
+
+    -- Pass 1: look for the explicit "Upgrade Level: <Track> …" tooltip line.
+    -- This is the authoritative source (Champions show "Champion", not "Mythic").
+    for _, row in ipairs(tooltipInfo.lines or {}) do
+        local text = row.leftText
+        if text then
+            local candidate = text:match("%a[%a ]+[Ll]evel:%s*(%a+)")
+            if candidate then
+                if ItemTier.Constants.TrackInfo[candidate] then return candidate end
+                local lower = candidate:lower()
+                for _, knownTrack in ipairs(TrackNames) do
+                    if lower == knownTrack:lower() then return knownTrack end
+                end
+            end
+        end
+    end
+
+    -- Pass 2: whole-word scan – %f[%a]/%f[%A] prevents "Myth" matching "Mythic".
     for _, row in ipairs(tooltipInfo.lines or {}) do
         local text = row.leftText
         if text then
             for _, knownTrack in ipairs(TrackNames) do
-                if text:find(knownTrack, 1, true) then
+                if text:find("%f[%a]" .. knownTrack .. "%f[%A]") then
                     return knownTrack
                 end
             end
@@ -148,14 +166,23 @@ function ItemTier.Scanner.Resolve(details)
     -- Method 1: upgrade API (requires item to be physically present in bags).
     local track = DetectViaUpgradeAPI(details.itemLocation)
 
-    -- Method 2: bonus ID table.
+    -- Method 2: tooltip scan – most reliable text source.
+    -- Called eagerly via tooltipGetter() so that stale bonus IDs cannot
+    -- override what the game itself reports (e.g. "Champion 1/6").
     if not track then
-        track = DetectViaBonusIDs(itemLink)
+        local tipInfo = details.tooltipInfo
+        if not tipInfo and details.tooltipGetter then
+            tipInfo = details.tooltipGetter()
+        end
+        if tipInfo then
+            track = DetectViaTooltip(tipInfo)
+        end
     end
 
-    -- Method 3: tooltip scan (lazy – only if tooltipInfo already fetched).
-    if not track and details.tooltipInfo then
-        track = DetectViaTooltip(details.tooltipInfo)
+    -- Method 3: bonus ID table – fast fallback when tooltip data is not yet
+    -- available (item not yet cached by the client).
+    if not track then
+        track = DetectViaBonusIDs(itemLink)
     end
 
     -- Cache the result (nil → false so we don't re-scan on every frame).

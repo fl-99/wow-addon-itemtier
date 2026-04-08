@@ -79,8 +79,12 @@ loader:SetScript("OnEvent", function(self, _, addonName)
     end
 end)
 
--- If Baganator was already loaded before this file ran (edge case), register now.
-if IsAddOnLoaded and IsAddOnLoaded("Baganator") then
+-- With OptionalDeps: Baganator, Baganator always loads before ItemTier when it
+-- is installed, so ADDON_LOADED for "Baganator" has already fired by the time
+-- this file runs.  The global IsAddOnLoaded was moved to C_AddOns.IsAddOnLoaded
+-- in 10.0, so we check both for forward- and backward-compatibility.
+local checkLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+if checkLoaded and checkLoaded("Baganator") then
     RegisterWithBaganator()
     loader:UnregisterEvent("ADDON_LOADED")
 end

@@ -20,4 +20,8 @@ function ItemTier.Init()
     if type(ItemTierDB) ~= "table" then ItemTierDB = {} end
     ApplyDefaults(ItemTierDB, ItemTier.Constants.DefaultConfig)
     ItemTier.DB = ItemTierDB
+
+    -- Build the vanilla Options → AddOns settings panel now that
+    -- SavedVariables are available and all files have been loaded.
+    ItemTier.Config.BuildSettingsPanel()
 end

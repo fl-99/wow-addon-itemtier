@@ -122,3 +122,92 @@ end
 -- ---------------------------------------------------------------------------
 SLASH_ITEMTIER1 = "/itemtier"
 SlashCmdList["ITEMTIER"] = HandleSlash
+
+-- ---------------------------------------------------------------------------
+-- Vanilla Options → AddOns settings panel
+-- Built with the modern Settings API (available in WoW 10.0+).
+-- Call this after SavedVariables have been loaded (i.e. from ItemTier.Init).
+-- ---------------------------------------------------------------------------
+function ItemTier.Config.BuildSettingsPanel()
+    if not Settings then return end
+
+    local category = Settings.RegisterVerticalLayoutCategory("ItemTier")
+
+    -- Helper: register a proxy setting backed by ItemTier.DB
+    local function ProxySetting(key, varType, name, default, getter, setter)
+        return Settings.RegisterProxySetting(
+            category, key, varType, name, default, getter, setter
+        )
+    end
+
+    -- Enabled / disabled toggle
+    local enabledSetting = ProxySetting(
+        "ITEMTIER_ENABLED", Settings.VarType.Boolean,
+        "Enable ItemTier",
+        ItemTier.Constants.DefaultConfig.enabled,
+        function() return ItemTier.DB.enabled end,
+        function(val) ItemTier.DB.enabled = val end
+    )
+    Settings.CreateCheckBox(category, enabledSetting,
+        "Show upgrade track / tier labels on bag item icons.")
+
+    -- Color-coded labels toggle
+    local colorsSetting = ProxySetting(
+        "ITEMTIER_USE_COLORS", Settings.VarType.Boolean,
+        "Color-coded Labels",
+        ItemTier.Constants.DefaultConfig.useColors,
+        function() return ItemTier.DB.useColors end,
+        function(val)
+            ItemTier.DB.useColors = val
+            ItemTier.Cache.Clear()
+        end
+    )
+    Settings.CreateCheckBox(category, colorsSetting,
+        "Tint each label with the color associated with its upgrade track.")
+
+    -- Display mode dropdown
+    local modeSetting = ProxySetting(
+        "ITEMTIER_DISPLAY_MODE", Settings.VarType.String,
+        "Display Mode",
+        ItemTier.Constants.DefaultConfig.displayMode,
+        function() return ItemTier.DB.displayMode end,
+        function(val)
+            ItemTier.DB.displayMode = val
+            ItemTier.Cache.Clear()
+        end
+    )
+    local function GetModeOptions()
+        local container = Settings.CreateControlTextContainer()
+        container:Add("short",  "Short  (E / A / V \226\128\166)")
+        container:Add("abbrev", "Abbreviated  (Expl / Adv / Vet \226\128\166)")
+        container:Add("full",   "Full  (Explorer / Adventurer \226\128\166)")
+        return container:GetData()
+    end
+    Settings.CreateDropdown(category, modeSetting, GetModeOptions,
+        "Choose how the upgrade track is displayed on bag icons.")
+
+    -- Label scale slider (0.5× – 2.0×)
+    local fontSizeSetting = ProxySetting(
+        "ITEMTIER_FONT_SIZE", Settings.VarType.Number,
+        "Label Scale",
+        ItemTier.Constants.DefaultConfig.fontSize,
+        function() return ItemTier.DB.fontSize end,
+        function(val) ItemTier.DB.fontSize = val end
+    )
+    local sliderOptions = Settings.CreateSliderOptions(0.5, 2.0, 0.1)
+    Settings.CreateSlider(category, fontSizeSetting, sliderOptions,
+        "Font size multiplier for upgrade track labels (1.0 = default).")
+
+    -- Debug output toggle
+    local debugSetting = ProxySetting(
+        "ITEMTIER_DEBUG", Settings.VarType.Boolean,
+        "Debug Output",
+        ItemTier.Constants.DefaultConfig.debug,
+        function() return ItemTier.DB.debug end,
+        function(val) ItemTier.DB.debug = val end
+    )
+    Settings.CreateCheckBox(category, debugSetting,
+        "Print verbose debug messages to the chat frame.")
+
+    Settings.RegisterAddOnCategory(category)
+end
