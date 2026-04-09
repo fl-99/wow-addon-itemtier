@@ -1,12 +1,12 @@
 ## Interface: 120001
 ## Title: ItemTier
-## Notes: Displays the upgrade track / difficulty tier on bag item buttons. Integrates with Baganator as an icon-corner widget.
+## Notes: Displays upgrade track tier (V, C, M, etc.) on bag and character items. Works standalone or integrates with Baganator.
 ## Author: ItemTier Contributors
 ## Version: 1.0.0
 ## SavedVariables: ItemTierDB
 ## OptionalDeps: Baganator
 ## IconTexture: Interface\Icons\inv_misc_note_01
-## AddonCompartmentCategories: Inventory
+## Category: Inventory
 
 Util/Constants.lua
 Core/Cache.lua
