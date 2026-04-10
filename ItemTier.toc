@@ -2,7 +2,7 @@
 ## Title: ItemTier
 ## Notes: Displays upgrade track tier (V, C, M, etc.) on bag and character items. Works standalone or integrates with Baganator.
 ## Author: ItemTier Contributors
-## Version: 1.0.0
+## Version: @project-version@
 ## SavedVariables: ItemTierDB
 ## OptionalDeps: Baganator
 ## IconTexture: Interface\Icons\inv_misc_note_01
