@@ -31,6 +31,39 @@ A World of Warcraft addon that displays a compact **upgrade-track** badge on bag
 
 ---
 
+## Local Development
+
+For local development, you can create a zip with the same top-level addon
+folder layout used for CurseForge releases (`ItemTier/...`).
+
+Run from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1
+```
+
+Output:
+
+- Zip file in `dist/` (default name: `ItemTier-<version>.zip`)
+- `@project-version@` in `ItemTier.toc` is replaced in the packaged copy
+  with a local version string (`git describe --tags --always --dirty`, or
+  `local-dev` fallback)
+
+Useful options:
+
+```powershell
+# Custom output folder and zip name
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -OutputDir release -ZipName ItemTier-dev.zip
+
+# Force-clean output folder before packaging
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -CleanOutput
+
+# Override version token replacement value
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -ProjectVersion 12.0.5-dev
+```
+
+---
+
 ## Slash Commands
 
 ```
