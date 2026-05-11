@@ -1,6 +1,6 @@
 # ItemTier
 
-A World of Warcraft addon (**Retail 12.0.1**) that displays a compact **upgrade-track** badge on bag item buttons via a **Baganator icon-corner widget**.
+A World of Warcraft addon that displays a compact **upgrade-track** badge on bag item buttons via a **Baganator icon-corner widget**.
 
 ---
 
@@ -50,7 +50,7 @@ A World of Warcraft addon (**Retail 12.0.1**) that displays a compact **upgrade-
 
 ```
 ItemTier/
-├── ItemTier.toc               TOC for Retail 12.0.1
+├── ItemTier.toc               TOC for Retail
 ├── ItemTier.lua               Main entry point / ADDON_LOADED bootstrap
 ├── Util/
 │   └── Constants.lua          Tier names, colors, abbreviations, bonus-ID table
@@ -93,7 +93,7 @@ Upgrade-track bonus IDs **change each WoW season**.  The table in
 (patch 11.0.2 – 12.0.x) and previously confirmed Dragonflight Season 3/4  
 IDs for cached items.
 
-> **TODO:** Verify all bonus IDs against live servers for 12.0.1.66838.  
+> **TODO:** Verify all bonus IDs against live servers for 12.0.5.  
 > Update `ItemTier.Constants.BonusIDToTrack` when new seasons launch.
 
 ### C_ItemUpgrade and Tooltip Fallback

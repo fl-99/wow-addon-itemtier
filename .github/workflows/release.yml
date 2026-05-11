@@ -2,6 +2,8 @@ name: Release
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'release-*'
 
@@ -9,7 +11,29 @@ permissions:
   contents: write
 
 jobs:
+  auto-tag:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push release tag
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          date_stamp="$(date -u +'%Y%m%d')"
+          tag="release-${date_stamp}-${short_sha}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag "$tag"
+          git push origin "$tag"
+
   release:
+    if: startsWith(github.ref, 'refs/tags/release-')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
