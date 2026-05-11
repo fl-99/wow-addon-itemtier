@@ -4,22 +4,20 @@ on:
   push:
     branches:
       - master
-    tags:
-      - 'release-*'
 
 permissions:
   contents: write
 
 jobs:
-  auto-tag:
-    if: github.ref == 'refs/heads/master'
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Create and push release tag
+        id: tag
         shell: bash
         run: |
           short_sha="${GITHUB_SHA::7}"
@@ -32,13 +30,7 @@ jobs:
           git tag "$tag"
           git push origin "$tag"
 
-  release:
-    if: startsWith(github.ref, 'refs/tags/release-')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Package and publish GitHub release
         uses: BigWigsMods/packager@v2
