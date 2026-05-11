@@ -7,7 +7,7 @@ ItemTier.Constants = {}
 -- Upgrade-track definitions
 -- Each entry maps a bonus ID to tier metadata used for display.
 --
--- TODO: Verify / extend these bonus IDs against live TWW patch 12.0.5.
+-- TODO: Verify / extend these bonus IDs each season using live item data.
 --       Bonus IDs for upcoming seasons will need additions here.
 --       Reference: https://www.wowhead.com/item-bonus-ids
 --

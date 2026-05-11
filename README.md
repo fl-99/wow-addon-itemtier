@@ -1,11 +1,13 @@
 # ItemTier
 
-A World of Warcraft addon that displays a compact **upgrade-track** badge on bag item buttons via a **Baganator icon-corner widget**.
+A World of Warcraft addon that displays compact **upgrade-track** badges (Hero, Myth, etc.) on item icons.
 
 ---
 
 ## Features
 
+- Shows upgrade-track badges on **Blizzard default bags** (including separate bag windows).
+- Shows upgrade-track badges on the **character panel** equipped slots.
 - Registers a **Baganator icon-corner widget** ("ItemTier: Track") selectable in  
   *Baganator → Icon Settings / Icon Corners*.
 - Adds a **vanilla Options → AddOns** panel for in-game configuration.
@@ -17,7 +19,7 @@ A World of Warcraft addon that displays a compact **upgrade-track** badge on bag
 - Three display modes: **short** (`V`), **abbrev** (`Vet`), **full** (`Veteran`)
 - Color-coded labels per track.
 - Lightweight: item links are cached; cache is cleared on `BAG_UPDATE`.
-- Fails gracefully when Baganator is not installed.
+- Works standalone; Baganator integration is optional.
 
 ---
 
@@ -26,8 +28,8 @@ A World of Warcraft addon that displays a compact **upgrade-track** badge on bag
 1. Copy the `ItemTier` folder into  
    `World of Warcraft/_retail_/Interface/AddOns/`
 2. Enable **ItemTier** in the WoW AddOns list.
-3. Open Baganator, go to **Icon Settings → Icon Corners**, and assign  
-   *ItemTier: Track* to your preferred corner.
+3. Optional (Baganator): Open **Icon Settings → Icon Corners** and assign  
+  *ItemTier: Track* to your preferred corner.
 
 ---
 
@@ -93,6 +95,8 @@ ItemTier/
 │   ├── ItemScanner.lua        Upgrade-track resolution (all three methods)
 │   └── Cache.lua              Item-link keyed result cache (TTL 5 min)
 ├── Integrations/
+│   ├── BlizzardBags.lua       Blizzard default bag item button overlays
+│   ├── CharacterFrame.lua     Paper doll slot overlays
 │   └── Baganator.lua          RegisterCornerWidget call + onInit / onUpdate
 └── UI/
   └── Config.lua             /itemtier slash commands + AddOns settings panel
@@ -121,13 +125,13 @@ The `onUpdate` callback receives Baganator's `details` table for each item butto
 
 ### Bonus IDs
 
-Upgrade-track bonus IDs **change each WoW season**.  The table in  
-`Util/Constants.lua` ships with best-effort values for **TWW Season 1**  
-(patch 11.0.2 – 12.0.x) and previously confirmed Dragonflight Season 3/4  
-IDs for cached items.
+Upgrade-track bonus IDs **change each WoW season**. The table in  
+`Util/Constants.lua` includes best-effort mappings for current supported data,
+plus previously confirmed Dragonflight IDs for cached items.
 
-> **TODO:** Verify all bonus IDs against live servers for 12.0.5.  
-> Update `ItemTier.Constants.BonusIDToTrack` when new seasons launch.
+Action item:
+- Re-validate `ItemTier.Constants.BonusIDToTrack` at each seasonal reset and
+  update mappings when Blizzard introduces new track bonus IDs.
 
 ### C_ItemUpgrade and Tooltip Fallback
 
@@ -144,6 +148,10 @@ Raid difficulty (Normal / Heroic / Mythic / LFR) and Mythic+ level detection
 are **not yet implemented**.  The `instanceDifficultyID` field in the item link  
 and M+ keystone bonus IDs are the intended data sources for a future  
 "ItemTier: Difficulty" widget.
+
+Action item:
+- Add an optional second widget for source/difficulty once mapping coverage is
+  validated for raid and Mythic+ loot sources.
 
 ---
 
