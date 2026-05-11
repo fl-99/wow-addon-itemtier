@@ -11,3 +11,7 @@ required-dependencies:
 ignore:
   - .gitignore
   - .vscode
+  - scripts
+  - .github
+  - .git
+  - dist
