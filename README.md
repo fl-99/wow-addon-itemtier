@@ -25,44 +25,17 @@ A World of Warcraft addon that displays compact **upgrade-track** badges (Hero, 
 
 ## Installation
 
+### Recommended way
+
+Use Curseforge! You can find the project here: https://www.curseforge.com/wow/addons/itemtier.
+
+### Manual way
+
 1. Copy the `ItemTier` folder into  
    `World of Warcraft/_retail_/Interface/AddOns/`
 2. Enable **ItemTier** in the WoW AddOns list.
 3. Optional (Baganator): Open **Icon Settings → Icon Corners** and assign  
   *ItemTier: Track* to your preferred corner.
-
----
-
-## Local Development
-
-For local development, you can create a zip with the same top-level addon
-folder layout used for CurseForge releases (`ItemTier/...`).
-
-Run from the repository root:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1
-```
-
-Output:
-
-- Zip file in `dist/` (default name: `ItemTier-<version>.zip`)
-- `@project-version@` in `ItemTier.toc` is replaced in the packaged copy
-  with a local version string (`git describe --tags --always --dirty`, or
-  `local-dev` fallback)
-
-Useful options:
-
-```powershell
-# Custom output folder and zip name
-powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -OutputDir release -ZipName ItemTier-dev.zip
-
-# Force-clean output folder before packaging
-powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -CleanOutput
-
-# Override version token replacement value
-powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -ProjectVersion 12.0.5-dev
-```
 
 ---
 
@@ -77,29 +50,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -ProjectVer
 /itemtier cache clear         Wipe the item-tier cache
 /itemtier cache size          Show current cache entry count
 /itemtier status              Print current settings
-```
-
----
-
-## Project Structure
-
-```
-ItemTier/
-├── ItemTier.toc               TOC for Retail
-├── ItemTier.lua               Main entry point / ADDON_LOADED bootstrap
-├── Util/
-│   └── Constants.lua          Tier names, colors, abbreviations, bonus-ID table
-├── Core/
-│   ├── Init.lua               Namespace setup, SavedVariables defaults
-│   ├── Events.lua             BAG_UPDATE / PLAYER_ENTERING_WORLD wiring
-│   ├── ItemScanner.lua        Upgrade-track resolution (all three methods)
-│   └── Cache.lua              Item-link keyed result cache (TTL 5 min)
-├── Integrations/
-│   ├── BlizzardBags.lua       Blizzard default bag item button overlays
-│   ├── CharacterFrame.lua     Paper doll slot overlays
-│   └── Baganator.lua          RegisterCornerWidget call + onInit / onUpdate
-└── UI/
-  └── Config.lua             /itemtier slash commands + AddOns settings panel
 ```
 
 ---
@@ -179,3 +129,60 @@ All settings live in the `ItemTierDB` SavedVariables table:
 | `useColors` | boolean | `true` | Color-code the badge text |
 | `fontSize` | number | `1.0` | Font scale multiplier (Baganator controls actual size) |
 | `debug` | boolean | `false` | Print resolved tracks to chat |
+
+---
+
+## Local Development
+
+For local development, you can create a zip with the same top-level addon
+folder layout used for CurseForge releases (`ItemTier/...`).
+
+Run from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1
+```
+
+Output:
+
+- Zip file in `dist/` (default name: `ItemTier-<version>.zip`)
+- `@project-version@` in `ItemTier.toc` is replaced in the packaged copy
+  with a local version string (`git describe --tags --always --dirty`, or
+  `local-dev` fallback)
+
+Useful options:
+
+```powershell
+# Custom output folder and zip name
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -OutputDir release -ZipName ItemTier-dev.zip
+
+# Force-clean output folder before packaging
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -CleanOutput
+
+# Override version token replacement value
+powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -ProjectVersion 12.0.5-dev
+```
+
+
+---
+
+## Releasing to CurseForge
+
+CurseForge publishing is handled by GitHub Actions in `.github/workflows/release.yml`.
+The pipeline is triggered when you push a tag that matches:
+
+`release-*`
+
+Example release flow:
+
+```powershell
+# 1) Create a release tag
+git --no-pager tag release-<YEAR>-<NUMBER>
+
+# 2) Push the tag to GitHub (this triggers the CurseForge pipeline)
+git --no-pager push origin release-<YEAR>-<NUMBER>
+```
+
+Then check the workflow run in GitHub Actions (**CurseForge Release**).
+
+Prerequisite: repository secret `CF_API_KEY` must be configured for publishing.
