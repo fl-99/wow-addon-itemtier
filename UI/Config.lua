@@ -34,15 +34,27 @@ local function PrintStatus()
     Print("  Cache size : " .. tostring(ItemTier.Cache.Size()))
 end
 
-local function RequestBagWidgetRefresh()
+local function RefreshBaganatorWidgets()
     local baganator = rawget(_G, "Baganator")
-    if baganator and baganator.API and baganator.API.RequestItemButtonsRefresh then
-        baganator.API.RequestItemButtonsRefresh()
-    end
+    if not baganator then return end
+    local api = baganator.API
+    if not api then return end
+    local requestRefresh = api.RequestItemButtonsRefresh
+    if not requestRefresh then return end
+    requestRefresh()
+end
 
-    if ItemTier.BlizzardBags and ItemTier.BlizzardBags.RefreshAll then
-        ItemTier.BlizzardBags.RefreshAll()
-    end
+local function RefreshBlizzardWidgets()
+    local blizzardBags = ItemTier.BlizzardBags
+    if not blizzardBags then return end
+    local refreshAll = blizzardBags.RefreshAll
+    if not refreshAll then return end
+    refreshAll()
+end
+
+local function RequestBagWidgetRefresh()
+    RefreshBaganatorWidgets()
+    RefreshBlizzardWidgets()
 end
 
 -- ---------------------------------------------------------------------------

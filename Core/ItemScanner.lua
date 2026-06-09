@@ -1,89 +1,99 @@
 -- ItemTier: Item analysis – resolves upgrade track / difficulty tier
---
--- Detection methods, in priority order:
---   1. C_ItemUpgrade.GetItemUpgradeInfo()   – most accurate for upgradeable gear
---   2. Tooltip text scan                    – authoritative when available
---   3. Bonus ID table lookup                – fallback when tooltip data unavailable
 
 ItemTier = ItemTier or {}
 ItemTier.Scanner = {}
 
 local BonusIDToTrack = ItemTier.Constants.BonusIDToTrack
-local TrackNames     = ItemTier.Constants.TrackNames
+local TrackNames = ItemTier.Constants.TrackNames
 
--- ---------------------------------------------------------------------------
--- Helpers: item-link parsing
--- ---------------------------------------------------------------------------
-
--- Extract the raw bonus-ID section from an item link.
--- Format: item:id:enc:gem1:gem2:gem3:gem4:suf:uid:lvl:spec:upgradeType
---              :diffID:numBonusIDs:bonusID1:bonusID2:…
-local function GetBonusIDs(itemLink)
-    if not itemLink then return nil end
-    -- Strip colour codes / hyperlink wrappers so strsplit works cleanly.
-    local plain = itemLink:match("item:[0-9:%-]+")
-    if not plain then return nil end
-
-    local parts = { strsplit(":", plain) }
-    -- parts[1]  = "item"
-    -- parts[14] = number of bonus IDs
-    -- parts[15+] = individual bonus IDs
-    local numBonus = tonumber(parts[14])
-    if not numBonus or numBonus == 0 then return nil end
-
-    local ids = {}
-    for i = 1, numBonus do
-        local id = tonumber(parts[14 + i])
-        if id then ids[#ids + 1] = id end
+local function MatchKnownTrack(name)
+    if not name or name == "" then return nil end
+    for _, knownTrack in ipairs(TrackNames) do
+        if name:find(knownTrack, 1, true) then
+            return knownTrack
+        end
     end
-    return ids
+    return name
 end
 
--- ---------------------------------------------------------------------------
--- Method 1: C_ItemUpgrade API
--- Returns the track name string, or nil if unavailable.
--- ---------------------------------------------------------------------------
-local function DetectViaUpgradeAPI(itemLocation)
-    if not (C_ItemUpgrade and itemLocation) then return nil end
-    if not C_ItemUpgrade.GetItemUpgradeInfo then return nil end
-    if not C_Item.DoesItemExist(itemLocation) then return nil end
-
-    local ok, info = pcall(C_ItemUpgrade.GetItemUpgradeInfo, itemLocation)
-    if not ok or not info then return nil end
-
-    -- The upgradeInfo table is an array of upgrade step entries.
-    -- Each entry may carry a `bandTitle` (TWW naming) or `trackDescription`.
-    if type(info.upgradeInfo) == "table" then
-        for _, entry in ipairs(info.upgradeInfo) do
-            local name = entry.bandTitle or entry.trackDescription or entry.trackName
-            if name and name ~= "" then
-                -- Clean up locale-suffixed strings like "Champion Track"
-                for _, knownTrack in ipairs(TrackNames) do
-                    if name:find(knownTrack, 1, true) then
-                        return knownTrack
-                    end
-                end
-                return name  -- Return raw if no known track matched
-            end
+local function FirstPresentValue(source, keys)
+    for _, key in ipairs(keys) do
+        local value = source[key]
+        if value and value ~= "" then
+            return value
         end
-    end
-    -- Some API versions return a top-level bandTitle
-    local topName = info.bandTitle or info.trackName
-    if topName and topName ~= "" then
-        for _, knownTrack in ipairs(TrackNames) do
-            if topName:find(knownTrack, 1, true) then
-                return knownTrack
-            end
-        end
-        return topName
     end
     return nil
 end
 
--- ---------------------------------------------------------------------------
--- Method 3: Bonus ID table lookup
--- Returns the track name string, or nil.
--- ---------------------------------------------------------------------------
+local function GetBonusIDs(itemLink)
+    if not itemLink then return nil end
+    local plain = itemLink:match("item:[0-9:%-]+")
+    if not plain then return nil end
+
+    local parts = { strsplit(":", plain) }
+    local numBonus = tonumber(parts[14])
+    if not numBonus then return nil end
+    if numBonus == 0 then return nil end
+
+    local function CollectNumericBonusIDs()
+        local ids = {}
+        for i = 1, numBonus do
+            local id = tonumber(parts[14 + i])
+            if id then
+                ids[#ids + 1] = id
+            end
+        end
+        return ids
+    end
+
+    return CollectNumericBonusIDs()
+end
+
+local function HasUpgradeAPI()
+    if not C_ItemUpgrade then return false end
+    if not C_ItemUpgrade.GetItemUpgradeInfo then return false end
+    return true
+end
+
+local function IsItemAtLocation(itemLocation)
+    if not C_Item then return false end
+    local doesItemExist = C_Item.DoesItemExist
+    if not doesItemExist then return false end
+    return doesItemExist(itemLocation)
+end
+
+local function GetTrackFromUpgradeEntries(entries)
+    if type(entries) ~= "table" then return nil end
+    for _, entry in ipairs(entries) do
+        local name = FirstPresentValue(entry, { "bandTitle", "trackDescription", "trackName" })
+        local track = MatchKnownTrack(name)
+        if track then return track end
+    end
+    return nil
+end
+
+local function CanUseUpgradeDetection(itemLocation)
+    if not itemLocation then return false end
+    if not HasUpgradeAPI() then return false end
+    if not IsItemAtLocation(itemLocation) then return false end
+    return true
+end
+
+local function DetectViaUpgradeAPI(itemLocation)
+    if not CanUseUpgradeDetection(itemLocation) then return nil end
+
+    local ok, info = pcall(C_ItemUpgrade.GetItemUpgradeInfo, itemLocation)
+    if not ok then return nil end
+    if not info then return nil end
+
+    local entryTrack = GetTrackFromUpgradeEntries(info.upgradeInfo)
+    if entryTrack then return entryTrack end
+
+    local topName = FirstPresentValue(info, { "bandTitle", "trackName" })
+    return MatchKnownTrack(topName)
+end
+
 local function DetectViaBonusIDs(itemLink)
     local ids = GetBonusIDs(itemLink)
     if not ids then return nil end
@@ -94,31 +104,32 @@ local function DetectViaBonusIDs(itemLink)
     return nil
 end
 
--- ---------------------------------------------------------------------------
--- Method 2: Tooltip text scan
--- Returns the track name string, or nil.
--- ---------------------------------------------------------------------------
-local function DetectViaTooltip(tooltipInfo)
-    if not tooltipInfo then return nil end
+local function NormalizeTooltipCandidate(candidate)
+    if not candidate then return nil end
+    if ItemTier.Constants.TrackInfo[candidate] then return candidate end
+    local lower = candidate:lower()
+    for _, knownTrack in ipairs(TrackNames) do
+        if lower == knownTrack:lower() then
+            return knownTrack
+        end
+    end
+    return nil
+end
 
-    -- Pass 1: look for the explicit "Upgrade Level: <Track> …" tooltip line.
-    -- This is the authoritative source (Champions show "Champion", not "Mythic").
-    for _, row in ipairs(tooltipInfo.lines or {}) do
+local function DetectTooltipLevelLine(lines)
+    for _, row in ipairs(lines) do
         local text = row.leftText
         if text then
             local candidate = text:match("%a[%a ]+[Ll]evel:%s*(%a+)")
-            if candidate then
-                if ItemTier.Constants.TrackInfo[candidate] then return candidate end
-                local lower = candidate:lower()
-                for _, knownTrack in ipairs(TrackNames) do
-                    if lower == knownTrack:lower() then return knownTrack end
-                end
-            end
+            local normalized = NormalizeTooltipCandidate(candidate)
+            if normalized then return normalized end
         end
     end
+    return nil
+end
 
-    -- Pass 2: whole-word scan – %f[%a]/%f[%A] prevents "Myth" matching "Mythic".
-    for _, row in ipairs(tooltipInfo.lines or {}) do
+local function DetectTooltipWordMatch(lines)
+    for _, row in ipairs(lines) do
         local text = row.leftText
         if text then
             for _, knownTrack in ipairs(TrackNames) do
@@ -131,98 +142,117 @@ local function DetectViaTooltip(tooltipInfo)
     return nil
 end
 
--- ---------------------------------------------------------------------------
--- Public: resolve the upgrade track for an item.
---
--- `details`  – the Baganator item-details table
---              (fields: itemLink, itemLocation, tooltipInfo, tooltipGetter)
---
--- Returns the track name string (e.g. "Champion"), or nil if unresolved,
--- or false if the item is confirmed to have no upgrade track.
--- ---------------------------------------------------------------------------
-function ItemTier.Scanner.Resolve(details)
-    if not details or not details.itemLink then return nil end
-    local itemLink = details.itemLink
+local function DetectViaTooltip(tooltipInfo)
+    if not tooltipInfo then return nil end
+    local lines = tooltipInfo.lines
+    if not lines then lines = {} end
 
-    -- Check cache first.
-    -- Cache.Get returns false (confirmed no track), a track string, or nil (not cached).
-    local cached = ItemTier.Cache.Get(itemLink)
-    if cached ~= nil then
-        return cached  -- false or track string – caller handles both
-    end
+    local fromLevel = DetectTooltipLevelLine(lines)
+    if fromLevel then return fromLevel end
+    return DetectTooltipWordMatch(lines)
+end
 
-    -- Only equipment-class items can carry upgrade tracks.
-    -- If classID is nil the item data hasn't loaded yet; fall through and let
-    -- the detection methods return nil (Baganator will retry next frame).
-    local classID = select(6, C_Item.GetItemInfoInstant(itemLink))
-    local isEquipment = (classID == Enum.ItemClass.Armor
-                      or classID == Enum.ItemClass.Weapon
-                      or classID == Enum.ItemClass.Profession)
-    if classID and not isEquipment then
-        ItemTier.Cache.Set(itemLink, false)
-        return false
-    end
+local function IsEquipmentClass(classID)
+    if classID == Enum.ItemClass.Armor then return true end
+    if classID == Enum.ItemClass.Weapon then return true end
+    if classID == Enum.ItemClass.Profession then return true end
+    return false
+end
 
-    -- Method 1: upgrade API (requires item to be physically present in bags).
+local function GetTooltipInfo(details)
+    if details.tooltipInfo then return details.tooltipInfo end
+    local tooltipGetter = details.tooltipGetter
+    if not tooltipGetter then return nil end
+    return tooltipGetter()
+end
+
+local function GetItemLink(details)
+    if not details then return nil end
+    return details.itemLink
+end
+
+local function DetectTrack(details, itemLink)
     local track = DetectViaUpgradeAPI(details.itemLocation)
+    if track then return track end
 
-    -- Method 2: tooltip scan – most reliable text source.
-    -- Called eagerly via tooltipGetter() so that stale bonus IDs cannot
-    -- override what the game itself reports (e.g. "Champion 1/6").
-    if not track then
-        local tipInfo = details.tooltipInfo
-        if not tipInfo and details.tooltipGetter then
-            tipInfo = details.tooltipGetter()
+    local tooltipInfo = GetTooltipInfo(details)
+    if tooltipInfo then
+        track = DetectViaTooltip(tooltipInfo)
+    end
+    if track then return track end
+
+    return DetectViaBonusIDs(itemLink)
+end
+
+local function CacheTrack(itemLink, track)
+    if track then
+        ItemTier.Cache.Set(itemLink, track)
+        return
+    end
+    ItemTier.Cache.Set(itemLink, false)
+end
+
+local function DebugTrack(itemLink, track)
+    local db = ItemTier.DB
+    if not db then return end
+    if not db.debug then return end
+    if not track then return end
+    print("|cff00ff00[ItemTier]|r", itemLink, "→", track)
+end
+
+local function GetDisplayConfig()
+    local cfg = ItemTier.DB
+    if cfg then return cfg end
+    return ItemTier.Constants.DefaultConfig
+end
+
+local function ResolveDisplayModeText(track, info, mode)
+    if mode == "full" then return track end
+    if mode == "abbrev" then return info.abbrev end
+    return info.short
+end
+
+local function ResolveDisplayColor(cfg, info)
+    if not cfg.useColors then return 1, 1, 1 end
+    local color = info.color
+    if not color then return 1, 1, 1 end
+    return color[1], color[2], color[3]
+end
+
+function ItemTier.Scanner.Resolve(details)
+    local itemLink = GetItemLink(details)
+    if not itemLink then return nil end
+
+    local cached = ItemTier.Cache.Get(itemLink)
+    if cached ~= nil then return cached end
+
+    local classID = select(6, C_Item.GetItemInfoInstant(itemLink))
+    if classID then
+        if not IsEquipmentClass(classID) then
+            ItemTier.Cache.Set(itemLink, false)
+            return false
         end
-        if tipInfo then
-            track = DetectViaTooltip(tipInfo)
-        end
     end
 
-    -- Method 3: bonus ID table – fast fallback when tooltip data is not yet
-    -- available (item not yet cached by the client).
-    if not track then
-        track = DetectViaBonusIDs(itemLink)
-    end
-
-    -- Cache the result (nil → false so we don't re-scan on every frame).
-    ItemTier.Cache.Set(itemLink, track or false)
-
-    if ItemTier.DB and ItemTier.DB.debug and track then
-        print("|cff00ff00[ItemTier]|r", itemLink, "→", track)
-    end
-
+    local track = DetectTrack(details, itemLink)
+    CacheTrack(itemLink, track)
+    DebugTrack(itemLink, track)
     return track
 end
 
--- ---------------------------------------------------------------------------
--- Public: build the display label for a given track name.
--- Returns { text, r, g, b } or nil.
--- ---------------------------------------------------------------------------
 function ItemTier.Scanner.GetDisplayData(track)
     if not track then return nil end
+
     local info = ItemTier.Constants.TrackInfo[track]
     if not info then
-        -- Unknown track – show first letter
-        return { text = track:sub(1,1), r = 1, g = 1, b = 1 }
+        return { text = track:sub(1, 1), r = 1, g = 1, b = 1 }
     end
 
-    local cfg = ItemTier.DB or ItemTier.Constants.DefaultConfig
-    local mode = cfg.displayMode or "short"
+    local cfg = GetDisplayConfig()
+    local mode = cfg.displayMode
+    if not mode then mode = "short" end
 
-    local text
-    if mode == "full" then
-        text = track
-    elseif mode == "abbrev" then
-        text = info.abbrev
-    else  -- "short" (default)
-        text = info.short
-    end
-
-    local r, g, b = 1, 1, 1
-    if cfg.useColors and info.color then
-        r, g, b = info.color[1], info.color[2], info.color[3]
-    end
-
+    local text = ResolveDisplayModeText(track, info, mode)
+    local r, g, b = ResolveDisplayColor(cfg, info)
     return { text = text, r = r, g = g, b = b }
 end

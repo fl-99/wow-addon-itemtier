@@ -5,6 +5,35 @@ ItemTier.Events = {}
 
 local eventFrame = CreateFrame("Frame")
 
+local function ResolveBaganatorRefreshReason(baganator)
+    local refreshReason = "ItemWidgets"
+    local constants = baganator.Constants
+    if not constants then return refreshReason end
+    local reasons = constants.RefreshReason
+    if not reasons then return refreshReason end
+    if not reasons.ItemWidgets then return refreshReason end
+    return reasons.ItemWidgets
+end
+
+local function RequestBaganatorRefresh()
+    local baganator = rawget(_G, "Baganator")
+    if not baganator then return end
+
+    local api = baganator.API
+    if not api then return end
+    if not api.RequestItemButtonsRefresh then return end
+
+    local refreshReason = ResolveBaganatorRefreshReason(baganator)
+    api.RequestItemButtonsRefresh({ refreshReason })
+end
+
+local function RequestBlizzardBagRefresh()
+    local blizzardBags = ItemTier.BlizzardBags
+    if blizzardBags and blizzardBags.RefreshAll then
+        blizzardBags.RefreshAll()
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- BAG_UPDATE* family – invalidate cache so fresh items are re-scanned.
 -- We only wipe the cache rather than individual slots because we don't track
@@ -13,20 +42,8 @@ local eventFrame = CreateFrame("Frame")
 -- ---------------------------------------------------------------------------
 local function OnBagUpdate()
     ItemTier.Cache.Clear()
-    -- Ask Baganator to refresh its item buttons if it's loaded.
-    local baganator = rawget(_G, "Baganator")
-    if baganator and baganator.API and baganator.API.RequestItemButtonsRefresh then
-        baganator.API.RequestItemButtonsRefresh({
-            baganator.Constants
-            and baganator.Constants.RefreshReason
-            and baganator.Constants.RefreshReason.ItemWidgets
-            or "ItemWidgets"
-        })
-    end
-
-    if ItemTier.BlizzardBags and ItemTier.BlizzardBags.RefreshAll then
-        ItemTier.BlizzardBags.RefreshAll()
-    end
+    RequestBaganatorRefresh()
+    RequestBlizzardBagRefresh()
 end
 
 -- PLAYER_ENTERING_WORLD fires on login, reload, and zone changes.

@@ -21,6 +21,19 @@ local function OnInit(itemButton)
     return text
 end
 
+local function IsAddonEnabled()
+    local db = ItemTier.DB
+    return db and db.enabled
+end
+
+local function ApplyCornerDisplay(cornerText, track)
+    local display = ItemTier.Scanner.GetDisplayData(track)
+    if not display then return false end
+    cornerText:SetText(display.text)
+    cornerText:SetTextColor(display.r, display.g, display.b)
+    return true
+end
+
 -- ---------------------------------------------------------------------------
 -- onUpdate – called on every item-button refresh.
 -- Must return:
@@ -29,7 +42,7 @@ end
 --   nil   → data not available yet (Baganator will retry)
 -- ---------------------------------------------------------------------------
 local function OnUpdate(cornerText, details)
-    if not ItemTier.DB or not ItemTier.DB.enabled then
+    if not IsAddonEnabled() then
         return false
     end
 
@@ -43,12 +56,7 @@ local function OnUpdate(cornerText, details)
         return false
     end
 
-    local display = ItemTier.Scanner.GetDisplayData(track)
-    if not display then return false end
-
-    cornerText:SetText(display.text)
-    cornerText:SetTextColor(display.r, display.g, display.b)
-    return true
+    return ApplyCornerDisplay(cornerText, track)
 end
 
 -- ---------------------------------------------------------------------------
