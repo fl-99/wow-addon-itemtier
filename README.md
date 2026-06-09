@@ -177,10 +177,10 @@ Example release flow:
 
 ```powershell
 # 1) Create a release tag
-git --no-pager tag release-<YEAR>-<NUMBER>
+git --no-pager tag release-<YEAR>.<NUMBER>
 
 # 2) Push the tag to GitHub (this triggers the CurseForge pipeline)
-git --no-pager push origin release-<YEAR>-<NUMBER>
+git --no-pager push origin release-<YEAR>.<NUMBER>
 ```
 
 Then check the workflow run in GitHub Actions (**CurseForge Release**).
