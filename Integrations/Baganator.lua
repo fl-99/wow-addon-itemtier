@@ -12,8 +12,8 @@ ItemTier = ItemTier or {}
 
 -- ---------------------------------------------------------------------------
 -- onInit – called once per item button to create the overlay frame/widget.
--- Returns a FontString.  Setting .sizeFont = true lets Baganator honour the
--- user-configured font-size setting automatically.
+-- Returns a FontString. Setting .sizeFont = true lets Baganator provide its
+-- configured base size; ItemTier's font-size multiplier is applied on refresh.
 -- ---------------------------------------------------------------------------
 local function OnInit(itemButton)
     local text = itemButton:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -26,11 +26,18 @@ local function IsAddonEnabled()
     return db and db.enabled
 end
 
+local function GetFontScale()
+    local db = ItemTier.DB
+    if not db or not db.fontSize then return 1 end
+    return db.fontSize
+end
+
 local function ApplyCornerDisplay(cornerText, track)
     local display = ItemTier.Scanner.GetDisplayData(track)
     if not display then return false end
     cornerText:SetText(display.text)
     cornerText:SetTextColor(display.r, display.g, display.b)
+    cornerText:SetScale(GetFontScale())
     return true
 end
 

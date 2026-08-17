@@ -1,0 +1,14 @@
+name: Tests
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run WoW UI simulator tests
+        uses: osso/wow-ui-sim@12.0.5
+        with:
+          addon: ItemTier

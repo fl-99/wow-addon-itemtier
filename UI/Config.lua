@@ -52,9 +52,18 @@ local function RefreshBlizzardWidgets()
     refreshAll()
 end
 
-local function RequestBagWidgetRefresh()
+local function RefreshCharacterWidgets()
+    local characterFrame = ItemTier.CharacterFrame
+    if not characterFrame then return end
+    local refreshAll = characterFrame.RefreshAll
+    if not refreshAll then return end
+    refreshAll()
+end
+
+local function RequestItemWidgetRefresh()
     RefreshBaganatorWidgets()
     RefreshBlizzardWidgets()
+    RefreshCharacterWidgets()
 end
 
 -- ---------------------------------------------------------------------------
@@ -141,8 +150,8 @@ local function HandleSlash(input)
         PrintHelp()
     end
 
-    -- Request a Baganator refresh so changes take effect immediately.
-    RequestBagWidgetRefresh()
+    -- Refresh all item widgets so changes take effect immediately.
+    RequestItemWidgetRefresh()
 end
 
 -- ---------------------------------------------------------------------------
@@ -196,7 +205,7 @@ function ItemTier.Config.BuildSettingsPanel()
         cb:SetScript("OnShow",  function(self) self:SetChecked(getter()) end)
         cb:SetScript("OnClick", function(self)
             setter(self:GetChecked())
-            RequestBagWidgetRefresh()
+            RequestItemWidgetRefresh()
         end)
         Place(cb)
     end
@@ -251,7 +260,7 @@ function ItemTier.Config.BuildSettingsPanel()
                         ItemTier.Cache.Clear()
                     end
                     UIDropDownMenu_SetSelectedValue(modeDD, self.value)
-                    RequestBagWidgetRefresh()
+                    RequestItemWidgetRefresh()
                 end
                 UIDropDownMenu_AddButton(info)
             end
@@ -260,4 +269,39 @@ function ItemTier.Config.BuildSettingsPanel()
                 or ItemTier.Constants.DefaultConfig.displayMode)
         end)
     end)
+
+    -- Item text size slider
+    local fontSizeSlider = CreateFrame("Slider", "ItemTierConfigFontSizeSlider",
+                                       panel, "OptionsSliderTemplate")
+    fontSizeSlider:SetPoint("TOPLEFT", modeDD, "BOTTOMLEFT", 15, -18)
+    fontSizeSlider:SetWidth(220)
+    fontSizeSlider:SetMinMaxValues(0.5, 2.0)
+    fontSizeSlider:SetValueStep(0.1)
+    fontSizeSlider:SetObeyStepOnDrag(true)
+    fontSizeSlider.Low:SetText("50%")
+    fontSizeSlider.High:SetText("200%")
+
+    local function RefreshFontSizeLabel(value)
+        fontSizeSlider.Text:SetText(string.format("Item Text Size: %.1fx", value))
+    end
+
+    fontSizeSlider:SetScript("OnValueChanged", function(_, value)
+        value = tonumber(value)
+        if not value then return end
+        if ItemTier.DB then
+            ItemTier.DB.fontSize = value
+        end
+        RefreshFontSizeLabel(value)
+        RequestItemWidgetRefresh()
+    end)
+
+    local function RefreshFontSizeSlider()
+        local value = (ItemTier.DB and ItemTier.DB.fontSize)
+                    or ItemTier.Constants.DefaultConfig.fontSize
+        fontSizeSlider:SetValue(value)
+        RefreshFontSizeLabel(fontSizeSlider:GetValue())
+    end
+
+    RefreshFontSizeSlider()
+    panel:HookScript("OnShow", RefreshFontSizeSlider)
 end

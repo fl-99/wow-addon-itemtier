@@ -3,6 +3,7 @@
 -- Adds a compact track badge to equipped item buttons in the character window.
 
 ItemTier = ItemTier or {}
+ItemTier.CharacterFrame = ItemTier.CharacterFrame or {}
 
 local SLOT_BUTTON_NAMES = {
     "CharacterHeadSlot",
@@ -125,6 +126,8 @@ local function RefreshAll()
         end
     end
 end
+
+ItemTier.CharacterFrame.RefreshAll = RefreshAll
 
 local function SetupHooks()
     if not PaperDollItemSlotButton_Update then return false end

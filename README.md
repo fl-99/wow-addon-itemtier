@@ -10,7 +10,8 @@ A World of Warcraft addon that displays compact **upgrade-track** badges (Hero, 
 - Shows upgrade-track badges on the **character panel** equipped slots.
 - Registers a **Baganator icon-corner widget** ("ItemTier: Track") selectable in  
   *Baganator → Icon Settings / Icon Corners*.
-- Adds a **vanilla Options → AddOns** panel for in-game configuration.
+- Adds a **vanilla Options → AddOns** panel for in-game configuration, including
+  an adjustable item-text size slider.
 - Detects the item upgrade track (Explorer → Myth) and PvP tracks, using multiple  
   detection strategies in priority order:
   1. `C_ItemUpgrade.GetItemUpgradeInfo()` — most accurate for live bag items
@@ -115,6 +116,7 @@ Available toggles/options:
 - Color-coded Labels
 - Debug Output
 - Display Mode (short / abbrev / full)
+- Item Text Size (0.5x – 2.0x)
 
 ---
 
@@ -127,7 +129,7 @@ All settings live in the `ItemTierDB` SavedVariables table:
 | `enabled` | boolean | `true` | Master on/off switch |
 | `displayMode` | string | `"short"` | `"short"` \| `"abbrev"` \| `"full"` |
 | `useColors` | boolean | `true` | Color-code the badge text |
-| `fontSize` | number | `1.0` | Font scale multiplier (Baganator controls actual size) |
+| `fontSize` | number | `1.0` | ItemTier text scale multiplier; also applied on top of Baganator's configured font size |
 | `debug` | boolean | `false` | Print resolved tracks to chat |
 
 ---
@@ -163,6 +165,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -CleanOutpu
 powershell -ExecutionPolicy Bypass -File .\scripts\package-addon.ps1 -ProjectVersion 12.0.5-dev
 ```
 
+
+---
+
+## Testing
+
+The test suite uses [wow-ui-sim](https://github.com/Osso/wow-ui-sim) and runs automatically on pushes, pull requests, and manual workflow dispatches.
+
+Run it locally with Docker:
+
+```powershell
+docker run --rm -v "${PWD}:/app/Interface/AddOns/ItemTier" ghcr.io/osso/wow-ui-sim:12.0.5 run-tests ItemTier
+```
 
 ---
 
