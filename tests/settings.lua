@@ -18,6 +18,69 @@ test("item text size slider is registered", function()
     assertContains(slider.Text:GetText(), "Item Text Size")
 end)
 
+test("Blizzard bag refresh handles enumerated container frames and items", function()
+    assertNotNil(ItemTier.BlizzardBags)
+    assertNotNil(ItemTier.BlizzardBags.RefreshAll)
+
+    local itemText = {
+        SetPoint = function() end,
+        SetJustifyH = function() end,
+        SetScale = function() end,
+        SetText = function() end,
+        Hide = function() end,
+    }
+    local itemButton = {
+        CreateFontString = function() return itemText end,
+    }
+    local containerFrame = {}
+    function containerFrame:EnumerateValidItems()
+        local yielded = false
+        return function()
+            if yielded then return nil end
+            yielded = true
+            return 1, itemButton
+        end
+    end
+
+    local frameNames = {
+        "ContainerFrameCombinedBags",
+        "ContainerFrame1",
+        "ContainerFrame2",
+        "ContainerFrame3",
+        "ContainerFrame4",
+        "ContainerFrame5",
+        "ContainerFrame6",
+    }
+    local oldFrames = {}
+    for _, frameName in ipairs(frameNames) do
+        oldFrames[frameName] = _G[frameName]
+        _G[frameName] = nil
+    end
+
+    local oldEnumerate = ContainerFrameUtil_EnumerateContainerFrames
+    local oldEnabled = ItemTier.DB.enabled
+    ContainerFrameUtil_EnumerateContainerFrames = function()
+        local yielded = false
+        return function()
+            if yielded then return nil end
+            yielded = true
+            return 1, containerFrame
+        end
+    end
+    ItemTier.DB.enabled = false
+
+    local ok, err = pcall(ItemTier.BlizzardBags.RefreshAll)
+
+    ContainerFrameUtil_EnumerateContainerFrames = oldEnumerate
+    ItemTier.DB.enabled = oldEnabled
+    for _, frameName in ipairs(frameNames) do
+        _G[frameName] = oldFrames[frameName]
+    end
+
+    assert(ok, err)
+    assertNotNil(itemButton.ItemTierTrackText)
+end)
+
 test("item text size slider updates the saved setting and refreshes overlays", function()
     local slider = _G.ItemTierConfigFontSizeSlider
     assertNotNil(slider)

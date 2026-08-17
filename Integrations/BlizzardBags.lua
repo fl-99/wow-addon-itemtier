@@ -337,7 +337,7 @@ local function RefreshContainerFrame(frame)
         return
     end
 
-    for itemButton in frame:EnumerateValidItems() do
+    for _, itemButton in frame:EnumerateValidItems() do
         UpdateButton(itemButton)
     end
 end
@@ -366,7 +366,7 @@ function ItemTier.BlizzardBags.RefreshAll()
     end
 
     if ContainerFrameUtil_EnumerateContainerFrames then
-        for containerFrame in ContainerFrameUtil_EnumerateContainerFrames() do
+        for _, containerFrame in ContainerFrameUtil_EnumerateContainerFrames() do
             RefreshContainerFrame(containerFrame)
         end
     end
@@ -401,7 +401,7 @@ local function HookContainerFrameUpdateItems()
     end
 
     if ContainerFrameUtil_EnumerateContainerFrames then
-        for containerFrame in ContainerFrameUtil_EnumerateContainerFrames() do
+        for _, containerFrame in ContainerFrameUtil_EnumerateContainerFrames() do
             local frameKey = tostring(containerFrame)
             if containerFrame.GetName then
                 local frameName = containerFrame:GetName()
