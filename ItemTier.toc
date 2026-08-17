@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120100
 ## Title: ItemTier
 ## Notes: Displays upgrade track tier on bag and character items. Works standalone or integrates with Baganator.
 ## Author: ItemTier Contributors
